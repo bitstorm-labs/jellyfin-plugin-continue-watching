@@ -1,6 +1,7 @@
 using System.Net.Mime;
 using System.Security.Claims;
 using Jellyfin.Data.Enums;
+using Jellyfin.Plugin.ContinueWatching.Core;
 using MediaBrowser.Controller.Dto;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Dto;
@@ -44,18 +45,13 @@ public class ContinueWatchingController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<QueryResult<BaseItemDto>>> Get(
         [FromQuery] Guid? userId,
-        [FromQuery] int limit = 20,
+        [FromQuery] int limit = RowRequest.DefaultLimit,
         [FromQuery] string? fields = null,
         [FromQuery] string? enableImageTypes = null,
         [FromQuery] int? imageTypeLimit = null)
     {
-        if (!Guid.TryParse(User.FindFirstValue(UserIdClaim), out var caller))
-        {
-            return Forbid();
-        }
-
-        var target = userId is { } requested && requested != Guid.Empty ? requested : caller;
-        if (target != caller && !User.IsInRole("Administrator"))
+        _ = Guid.TryParse(User.FindFirstValue(UserIdClaim), out var caller);
+        if (RowRequest.TargetUser(caller, userId, User.IsInRole("Administrator")) is not { } target)
         {
             return Forbid();
         }
@@ -68,11 +64,11 @@ public class ContinueWatchingController : ControllerBase
 
         var dtoOptions = new DtoOptions
         {
-            Fields = ParseList<ItemFields>(fields),
+            Fields = RowRequest.ParseList<ItemFields>(fields),
             EnableImages = true,
             EnableUserData = true
         };
-        var imageTypes = ParseList<ImageType>(enableImageTypes);
+        var imageTypes = RowRequest.ParseList<ImageType>(enableImageTypes);
         if (imageTypes.Length > 0)
         {
             dtoOptions.ImageTypes = imageTypes;
@@ -83,16 +79,7 @@ public class ContinueWatchingController : ControllerBase
             dtoOptions.ImageTypeLimit = perType;
         }
 
-        var items = await _service.GetRowAsync(user, Math.Clamp(limit, 1, 100), dtoOptions);
+        var items = await _service.GetRowAsync(user, RowRequest.ClampLimit(limit), dtoOptions);
         return new QueryResult<BaseItemDto>(items);
     }
-
-    private static T[] ParseList<T>(string? csv)
-        where T : struct, Enum =>
-        (csv ?? string.Empty)
-            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(s => Enum.TryParse<T>(s, true, out var v) ? (T?)v : null)
-            .Where(v => v is not null)
-            .Select(v => v!.Value)
-            .ToArray();
 }

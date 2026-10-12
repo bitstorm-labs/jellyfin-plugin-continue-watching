@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          # Core and its tests are net9.0; the plugin shell is net10.0
+          # because Jellyfin.Controller 12.1.0 ships net10.0 only.
+          dotnet-version: |
+            9.0.x
+            10.0.x
+      - name: Test the ranking and request rules
+        run: dotnet test tests/Jellyfin.Plugin.ContinueWatching.Core.Tests
+      - name: Build the plugin
+        run: dotnet build src/Jellyfin.Plugin.ContinueWatching -c Release -warnaserror
