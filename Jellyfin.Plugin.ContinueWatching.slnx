@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Jellyfin.Plugin.ContinueWatching.Core/Jellyfin.Plugin.ContinueWatching.Core.csproj" />
+    <Project Path="src/Jellyfin.Plugin.ContinueWatching/Jellyfin.Plugin.ContinueWatching.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Jellyfin.Plugin.ContinueWatching.Core.Tests/Jellyfin.Plugin.ContinueWatching.Core.Tests.csproj" />
+  </Folder>
+</Solution>
