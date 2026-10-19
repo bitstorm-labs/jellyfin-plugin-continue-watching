@@ -5,6 +5,27 @@ show's next episode). Plex and Emby merge these into one Continue Watching row o
 the server. This plugin does the same, so every client shows the same row and none
 has to rebuild it.
 
+## Requirements and install
+
+- **Jellyfin 12** (built against `Jellyfin.Controller` 12.1.0, net10.0 only).
+- Current version: **0.1.1**. Git tags `v0.1.0` and `v0.1.1` exist, but there is no
+  GitHub release or plugin repository manifest yet, so install by hand (see
+  [Build and install](#build-and-install)).
+
+## Works with Sashimi
+
+With the plugin installed, Sashimi shows the server's row as Continue Watching.
+Without it, the app asks for `/ContinueWatching`, gets a 404, and builds a similar
+row itself from Resume and Next Up.
+
+| Platform | Uses the plugin | Falls back to its own merge |
+|---|---|---|
+| Apple TV, iPhone, iPad | yes | yes |
+| Android | yes | yes |
+| Roku | yes | yes |
+
+The point of the plugin is that every Sashimi device shows the same row in the same order.
+
 ## Endpoint
 
 `GET /ContinueWatching?userId=&limit=20&fields=&enableImageTypes=&imageTypeLimit=`
@@ -12,6 +33,7 @@ has to rebuild it.
 The response has the same shape as `/Users/{userId}/Items/Resume`
 (`{ Items, TotalRecordCount }`). The caller must be signed in. A non-admin can only
 ask for their own row. A client that gets 404 knows the plugin isn't installed.
+The plugin has no settings.
 
 ## Ranking
 
@@ -39,6 +61,7 @@ dotnet build src/Jellyfin.Plugin.ContinueWatching -c Release
 ```
 
 To install, stop Jellyfin, then copy `Jellyfin.Plugin.ContinueWatching.dll`,
-`Jellyfin.Plugin.ContinueWatching.Core.dll` and a `meta.json` into
-`plugins/ContinueWatching_<version>/`, and start Jellyfin again. Copying over a
+`Jellyfin.Plugin.ContinueWatching.Core.dll` (both from
+`src/Jellyfin.Plugin.ContinueWatching/bin/Release/net10.0/`) and a `meta.json` into
+`<jellyfin-config>/plugins/ContinueWatching_<version>/`, and start Jellyfin again. Copying over a
 running server's DLL makes it look like Jellyfin crashed.
