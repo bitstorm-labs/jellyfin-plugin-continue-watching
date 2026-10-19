@@ -23,12 +23,12 @@ export PATH="$HOME/.dotnet:$PATH" DOTNET_ROOT="$HOME/.dotnet"  # .NET 10 SDK liv
 dotnet build src/Jellyfin.Plugin.ContinueWatching -c Release
 ```
 
-## Deploy (popcorn Jellyfin)
+## Deploy (Docker Jellyfin)
 
 1. Check `/Sessions` for active playback.
 2. Run `docker stop Jellyfin`.
 3. Copy both DLLs into
-   `/mnt/user/appdata/Jellyfin/plugins/ContinueWatching_<version>/`, and update
+   `<jellyfin-config>/plugins/ContinueWatching_<version>/`, and update
    `version` and `changelog` in that folder's `meta.json`.
 4. Run `docker start Jellyfin`.
 
