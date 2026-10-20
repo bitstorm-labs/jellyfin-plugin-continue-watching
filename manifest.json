@@ -6,6 +6,15 @@
     "overview": "One server-side Continue Watching row for every client.",
     "owner": "Bitstorm Labs",
     "category": "General",
-    "versions": []
+    "versions": [
+      {
+        "version": "0.1.1.0",
+        "changelog": "Release 0.1.1. See https://github.com/bitstorm-labs/jellyfin-plugin-continue-watching/releases/tag/v0.1.1 for details.",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/bitstorm-labs/jellyfin-plugin-continue-watching/releases/download/v0.1.1/continue-watching_0.1.1.zip",
+        "checksum": "20aca042d909573b98ac0a81868b073b",
+        "timestamp": "2026-10-20T14:25:20Z"
+      }
+    ]
   }
 ]
