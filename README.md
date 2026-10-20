@@ -8,9 +8,21 @@ has to rebuild it.
 ## Requirements and install
 
 - **Jellyfin 12** (built against `Jellyfin.Controller` 12.1.0, net10.0 only).
-- Current version: **0.1.1**. Git tags `v0.1.0` and `v0.1.1` exist, but there is no
-  GitHub release or plugin repository manifest yet, so install by hand (see
-  [Build and install](#build-and-install)).
+- Current version: **0.1.1**.
+
+### Install from the plugin repository
+
+1. In Jellyfin, go to Dashboard, Plugins, Repositories, and add this repository URL:
+
+   ```
+   https://raw.githubusercontent.com/bitstorm-labs/jellyfin-plugin-continue-watching/main/manifest.json
+   ```
+2. Open Dashboard, Plugins, Catalog, install **Continue Watching**, and restart Jellyfin.
+
+`raw.githubusercontent.com` caches for a few minutes, so a repository added right
+after a release can return a stale manifest. Wait a minute and retry.
+
+To install by hand instead, see [Build and install](#build-and-install).
 
 ## Works with Sashimi
 
