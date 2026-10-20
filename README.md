@@ -77,3 +77,10 @@ To install, stop Jellyfin, then copy `Jellyfin.Plugin.ContinueWatching.dll`,
 `src/Jellyfin.Plugin.ContinueWatching/bin/Release/net10.0/`) and a `meta.json` into
 `<jellyfin-config>/plugins/ContinueWatching_<version>/`, and start Jellyfin again. Copying over a
 running server's DLL makes it look like Jellyfin crashed.
+
+## Credits
+
+Built on [Jellyfin](https://jellyfin.org/) (the Jellyfin project, GPL-2.0) and its
+`Jellyfin.Controller` plugin API. Sashimi is a separate Bitstorm Labs client for
+Jellyfin. Jellyfin is a separate project under its own license, and this plugin is
+not affiliated with or endorsed by it.
