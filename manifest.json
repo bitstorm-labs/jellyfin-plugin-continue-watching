@@ -1,0 +1,11 @@
+[
+  {
+    "guid": "a286cbd2-ce22-46ad-ad0f-d49491cce52a",
+    "name": "Continue Watching",
+    "description": "One Continue Watching row, ranked on the server: part-watched items and each show's next episode, ordered by when you last watched them. Requires Jellyfin 12.",
+    "overview": "One server-side Continue Watching row for every client.",
+    "owner": "Bitstorm Labs",
+    "category": "General",
+    "versions": []
+  }
+]
