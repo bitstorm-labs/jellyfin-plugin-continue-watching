@@ -8,7 +8,7 @@ has to rebuild it.
 ## Requirements and install
 
 - **Jellyfin 12** (built against `Jellyfin.Controller` 12.1.0, net10.0 only).
-- Current version: **0.1.1**.
+- Current version: **0.2.0**.
 
 ### Install from the plugin repository
 
@@ -38,7 +38,7 @@ row itself from Resume and Next Up.
 
 The point of the plugin is that every Sashimi device shows the same row in the same order.
 
-## Endpoint
+## Endpoints
 
 `GET /ContinueWatching?userId=&limit=20&fields=&enableImageTypes=&imageTypeLimit=`
 
@@ -46,6 +46,24 @@ The response has the same shape as `/Users/{userId}/Items/Resume`
 (`{ Items, TotalRecordCount }`). The caller must be signed in. A non-admin can only
 ask for their own row. A client that gets 404 knows the plugin isn't installed.
 The plugin has no settings.
+
+### Remove from Continue Watching
+
+| Request | Result |
+|---|---|
+| `POST /ContinueWatching/Hidden/{episodeId}` | Hides that episode's show from the row. 204; 400 if the item isn't an episode; 404 if it's unknown. |
+| `DELETE /ContinueWatching/Hidden/{episodeId}` | Undo. 204, even if nothing was hidden. |
+| `GET /ContinueWatching/Hidden` | The caller's hidden shows: `[{ SeriesId, EpisodeId, HiddenAtUtc }]`. |
+
+All three take `userId` with the same rule as the row. A show stays hidden while its
+Next Up episode is still the one that was hidden. It comes back on its own when Next
+Up moves to another episode, when the hidden episode is marked played or deleted, or
+when any episode of the show is played after the hide. The row drops those stale
+entries as it builds. Hides are kept per user in
+`<jellyfin-config>/plugins/configurations/ContinueWatching/hidden.json` (at most 500
+per user, oldest dropped first), so they survive restarts and upgrades. Clearing a
+movie's resume position is the client's job (`POST /UserItems/{id}/UserData`); the
+plugin only hides shows.
 
 ## Ranking
 
@@ -59,6 +77,8 @@ The plugin has no settings.
    opened weeks ago keeps that stale date while you binge the season before it.
 5. Newest first. On a tie the part-watched item leads. Shows with no watch history
    go last, in Next Up's order.
+
+6. Shows hidden with `POST /ContinueWatching/Hidden/{episodeId}` are left out.
 
 Air date plays no part.
 
