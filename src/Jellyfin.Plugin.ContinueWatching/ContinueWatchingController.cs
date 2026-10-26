@@ -1,8 +1,11 @@
 using System.Net.Mime;
 using System.Security.Claims;
 using Jellyfin.Data.Enums;
+using Jellyfin.Database.Implementations.Entities;
 using Jellyfin.Plugin.ContinueWatching.Core;
 using MediaBrowser.Controller.Dto;
+using MediaBrowser.Controller.Entities;
+using MediaBrowser.Controller.Entities.TV;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Dto;
 using MediaBrowser.Model.Entities;
@@ -27,11 +30,19 @@ public class ContinueWatchingController : ControllerBase
 
     private readonly ContinueWatchingService _service;
     private readonly IUserManager _userManager;
+    private readonly ILibraryManager _libraryManager;
+    private readonly HiddenStore _hidden;
 
-    public ContinueWatchingController(ContinueWatchingService service, IUserManager userManager)
+    public ContinueWatchingController(
+        ContinueWatchingService service,
+        IUserManager userManager,
+        ILibraryManager libraryManager,
+        HiddenStore hidden)
     {
         _service = service;
         _userManager = userManager;
+        _libraryManager = libraryManager;
+        _hidden = hidden;
     }
 
     /// <param name="userId">Whose row; defaults to the caller. Only an admin may ask for someone else's.</param>
@@ -50,16 +61,9 @@ public class ContinueWatchingController : ControllerBase
         [FromQuery] string? enableImageTypes = null,
         [FromQuery] int? imageTypeLimit = null)
     {
-        _ = Guid.TryParse(User.FindFirstValue(UserIdClaim), out var caller);
-        if (RowRequest.TargetUser(caller, userId, User.IsInRole("Administrator")) is not { } target)
+        if (ResolveUser(userId, out var user) is { } refused)
         {
-            return Forbid();
-        }
-
-        var user = _userManager.GetUserById(target);
-        if (user is null)
-        {
-            return NotFound();
+            return refused;
         }
 
         var dtoOptions = new DtoOptions
@@ -79,7 +83,91 @@ public class ContinueWatchingController : ControllerBase
             dtoOptions.ImageTypeLimit = perType;
         }
 
-        var items = await _service.GetRowAsync(user, RowRequest.ClampLimit(limit), dtoOptions);
+        var items = await _service.GetRowAsync(user!, RowRequest.ClampLimit(limit), dtoOptions);
         return new QueryResult<BaseItemDto>(items);
+    }
+
+    /// <summary>
+    /// Removes an episode's series from the row until the user's Next Up for it moves
+    /// to another episode (or they play the series again).
+    /// </summary>
+    /// <param name="itemId">The episode the row is showing.</param>
+    /// <param name="userId">Whose row; defaults to the caller. Only an admin may change someone else's.</param>
+    [HttpPost("Hidden/{itemId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult Hide([FromRoute] Guid itemId, [FromQuery] Guid? userId)
+    {
+        if (ResolveUser(userId, out var user) is { } refused)
+        {
+            return refused;
+        }
+
+        var item = _libraryManager.GetItemById<BaseItem>(itemId, user);
+        if (item is null)
+        {
+            return NotFound();
+        }
+
+        if (item is not Episode { SeriesId: var seriesId } || seriesId == Guid.Empty)
+        {
+            return BadRequest("Only an episode can be hidden from Continue Watching.");
+        }
+
+        _hidden.Hide(user!.Id, seriesId, itemId, DateTime.UtcNow);
+        return NoContent();
+    }
+
+    /// <summary>Undoes a hide. Succeeds whether or not anything was hidden.</summary>
+    /// <param name="itemId">The hidden episode (or its series).</param>
+    /// <param name="userId">Whose row; defaults to the caller. Only an admin may change someone else's.</param>
+    [HttpDelete("Hidden/{itemId}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult Unhide([FromRoute] Guid itemId, [FromQuery] Guid? userId)
+    {
+        if (ResolveUser(userId, out var user) is { } refused)
+        {
+            return refused;
+        }
+
+        var seriesId = _libraryManager.GetItemById(itemId) is Episode { SeriesId: var id } && id != Guid.Empty
+            ? id
+            : (Guid?)null;
+        _hidden.Unhide(user!.Id, itemId, seriesId);
+        return NoContent();
+    }
+
+    /// <summary>The series currently hidden from the row.</summary>
+    /// <param name="userId">Whose list; defaults to the caller. Only an admin may read someone else's.</param>
+    [HttpGet("Hidden")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public ActionResult<IReadOnlyList<HiddenEntry>> ListHidden([FromQuery] Guid? userId)
+    {
+        if (ResolveUser(userId, out var user) is { } refused)
+        {
+            return refused;
+        }
+
+        return Ok(_hidden.List(user!.Id));
+    }
+
+    /// <summary>The same who-may-see-whose rule for every endpoint; null when allowed.</summary>
+    private ActionResult? ResolveUser(Guid? requested, out User? user)
+    {
+        user = null;
+        _ = Guid.TryParse(User.FindFirstValue(UserIdClaim), out var caller);
+        if (RowRequest.TargetUser(caller, requested, User.IsInRole("Administrator")) is not { } target)
+        {
+            return Forbid();
+        }
+
+        user = _userManager.GetUserById(target);
+        return user is null ? NotFound() : null;
     }
 }

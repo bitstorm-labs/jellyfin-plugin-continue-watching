@@ -8,7 +8,10 @@ which fall back to their own merge on a 404. The design is in
 ## Layout
 
 - `src/Jellyfin.Plugin.ContinueWatching.Core`: the ranking (`ContinueWatchingRanker`) and
-  the request rules (`RowRequest`: who may read whose row, the limit, list parsing).
+  the request rules (`RowRequest`: who may read whose row, the limit, list parsing),
+  and "Remove from Continue Watching" (`HideRule`: when a hidden series stays hidden;
+  `HiddenStore`: the per-user JSON store). The hide rule is shared with the Sashimi
+  clients' local fallback, so keep the two in step.
   It doesn't reference Jellyfin, targets net9.0, and every rule here has a test.
 - `src/Jellyfin.Plugin.ContinueWatching`: a thin shell (net10.0, Jellyfin.Controller
   12.1.0) that reads Resume, Next Up and history from the server, passes them to Core,

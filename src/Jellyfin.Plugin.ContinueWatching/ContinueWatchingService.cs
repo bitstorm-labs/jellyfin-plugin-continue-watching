@@ -23,13 +23,16 @@ public class ContinueWatchingService
     private readonly ITVSeriesManager _tvSeriesManager;
     private readonly IUserDataManager _userDataManager;
     private readonly IDtoService _dtoService;
+    private readonly HiddenStore _hidden;
 
     public ContinueWatchingService(
         ILibraryManager libraryManager,
         ITVSeriesManager tvSeriesManager,
         IUserDataManager userDataManager,
-        IDtoService dtoService)
+        IDtoService dtoService,
+        HiddenStore hidden)
     {
+        _hidden = hidden;
         _libraryManager = libraryManager;
         _tvSeriesManager = tvSeriesManager;
         _userDataManager = userDataManager;
@@ -89,15 +92,42 @@ public class ContinueWatchingService
             return new RowCandidate(item.Id, SeriesIdOf(item), data?.LastPlayedDate, data?.Played ?? false);
         }
 
+        var resumeCandidates = resume.Select(ToCandidate).ToList();
+        var nextUpCandidates = nextUp.Select(ToCandidate).ToList();
+        var histories = SeriesHistories(history, DataOf);
+
+        var hidden = _hidden.List(user.Id);
+        var hiddenSeries = (IReadOnlySet<Guid>)new HashSet<Guid>();
+        if (hidden.Count > 0)
+        {
+            var outcome = HideRule.Apply(hidden, nextUpCandidates, histories, FinishedEpisodes(hidden, user));
+            _hidden.Remove(user.Id, outcome.Stale);
+            hiddenSeries = outcome.HiddenSeries;
+        }
+
         var ranked = ContinueWatchingRanker.Rank(
-            resume.Select(ToCandidate).ToList(),
-            nextUp.Select(ToCandidate).ToList(),
-            SeriesHistories(history, DataOf),
+            HideRule.Without(resumeCandidates, hiddenSeries),
+            HideRule.Without(nextUpCandidates, hiddenSeries),
+            histories,
             limit);
 
         var byId = resume.Concat(nextUp).DistinctBy(i => i.Id).ToDictionary(i => i.Id);
         var items = ranked.Select(id => byId[id]).ToList();
         return _dtoService.GetBaseItemDtos(items, dtoOptions, user);
+    }
+
+    /// <summary>Hidden episodes that are now marked played, or are gone from the library.</summary>
+    private HashSet<Guid> FinishedEpisodes(IReadOnlyList<HiddenEntry> hidden, User user)
+    {
+        var items = hidden
+            .Select(e => (e.EpisodeId, Item: _libraryManager.GetItemById(e.EpisodeId)))
+            .ToList();
+        var present = items.Where(x => x.Item is not null).Select(x => x.Item!).ToList();
+        var data = _userDataManager.GetUserDataBatch(present, user);
+        return items
+            .Where(x => x.Item is null || (data.TryGetValue(x.EpisodeId, out var d) && d.Played))
+            .Select(x => x.EpisodeId)
+            .ToHashSet();
     }
 
     private static Dictionary<Guid, SeriesHistory> SeriesHistories(
