@@ -8,6 +8,14 @@
     "category": "General",
     "versions": [
       {
+        "version": "0.2.0.0",
+        "changelog": "Release 0.2.0. See https://github.com/bitstorm-labs/jellyfin-plugin-continue-watching/releases/tag/v0.2.0 for details.",
+        "targetAbi": "12.1.0.0",
+        "sourceUrl": "https://github.com/bitstorm-labs/jellyfin-plugin-continue-watching/releases/download/v0.2.0/continue-watching_0.2.0.zip",
+        "checksum": "1394a5f8fc6f37e47b1bc7a9aaf9dbd9",
+        "timestamp": "2026-10-26T00:52:39Z"
+      },
+      {
         "version": "0.1.1.0",
         "changelog": "Release 0.1.1. See https://github.com/bitstorm-labs/jellyfin-plugin-continue-watching/releases/tag/v0.1.1 for details.",
         "targetAbi": "12.1.0.0",
